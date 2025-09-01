@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>UBL Copilot Portal</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      background: #f4f6f9;
+      overflow: hidden;
+    }
+
+    /* Header Bar */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #2c3e50;
+      color: #fff;
+      padding: 10px 20px;
+      height: 60px;
+      flex-shrink: 0;
+      position: relative;
+    }
+    .header img {
+      position: absolute;
+      left: 30px;
+      height: 60px;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    /* Layout wrapper below header */
+    .main-layout {
+      display: flex;
+      flex: 1;
+      height: calc(100vh - 60px);
+    }
+
+    /* Left Sidebar */
+    .sidebar {
+      width: 220px;
+      background: #2c3e50;
+      color: #ffffff;
+      padding: 20px;
+    }
+    .sidebar h3 {
+      margin-bottom: 20px;
+    }
+    .sidebar ul {
+      list-style: none;
+      padding: 0;
+    }
+    .sidebar li {
+      margin: 15px 0;
+      cursor: pointer;
+    }
+    .sidebar li:hover,
+    .sidebar li.active {
+      color: #1abc9c;
+      font-weight: bold;
+    }
+
+    /* Right Tree Menu */
+    .tree-menu {
+      width: 340px;
+      background: #ecf0f1;
+      padding: 20px;
+      overflow-y: auto;
+    }
+    .tree-item {
+      margin-bottom: 12px;
+    }
+    .tree-item > button {
+      width: 100%;
+      text-align: left;
+      padding: 8px;
+      border: none;
+      background: #bdc3c7;
+      cursor: pointer;
+      border-radius: 6px;
+      transition: background 0.3s;
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+    .tree-item > button:hover {
+      background: #95a5a6;
+    }
+    .sub-menu {
+      display: none;
+      margin-left: 14px;
+      margin-top: 6px;
+    }
+    .sub-menu button {
+      width: 100%;
+      text-align: left;
+      padding: 7px 8px;
+      border: none;
+      background: #dfe6e9;
+      cursor: pointer;
+      border-radius: 6px;
+      margin-bottom: 6px;
+    }
+    .sub-menu .sub-menu button {
+      background: #eef2f5;
+    }
+
+    /* Center content */
+    .content {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      display: none;
+    }
+    .content.active {
+      display: block;
+    }
+
+    /* Two-column layout for Home */
+    .columns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+    }
+    .column h3 {
+      margin-bottom: 15px;
+      color: #2c3e50;
+    }
+    .agents {
+      display: grid;
+      gap: 15px;
+    }
+    .agent-card {
+      background: #fff;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      cursor: pointer;
+      text-align: center;
+      transition: transform 0.3s, background 0.3s;
+    }
+    .agent-card:hover {
+      background: #f1f2f6;
+      transform: scale(1.03);
+    }
+    .agent-card.active {
+      border: 2px solid #1abc9c;
+      background: #eafaf7;
+    }
+
+    /* Full Chat */
+    .chat-container {
+      display: none;
+      position: fixed;
+      top: 60px;
+      left: 0;
+      height: calc(100vh - 60px);
+      width: 100%;
+      background: #fff;
+      z-index: 1000;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.4s ease;
+    }
+    .chat-container.show {
+      display: block;
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .chat-container.hide {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    .chat-header {
+      padding: 10px;
+      background: #2c3e50;
+      color: #fff;
+      display: flex;
+      align-items: center;
+    }
+    .chat-header button {
+      margin-right: 15px;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 5px;
+      background: #1abc9c;
+      color: #fff;
+      cursor: pointer;
+    }
+    .chat-container iframe {
+      width: 100%;
+      height: calc(100% - 50px);
+      border: none;
+    }
+
+    /* Responsive */
+    @media(max-width: 1100px){
+      .tree-menu { width: 300px; }
+    }
+    @media(max-width: 900px){
+      .tree-menu { display: none; }
+      .columns { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR2JJosnCtulqetsu--eBdSTPMgRmYBz4dHUw&s" alt="UBL Logo">
+    <h1>Internal Audit Knowledge Assistant Portal</h1>
+  </div>
+
+  <!-- Main Layout -->
+  <div class="main-layout">
+    <!-- Left Sidebar -->
+    <div class="sidebar">
+      <h3>Menu</h3>
+      <ul>
+        <li class="active" onclick="showScreen('home', event)">Home</li>
+        <li onclick="showScreen('checklist', event)">Generate Checklist</li>
+        <li onclick="showScreen('compare', event)">Compare Internal Audit with Regulators</li>
+        <li onclick="showScreen('reports', event)">Reports</li>
+      </ul>
+    </div>
+
+    <!-- Center Screens -->
+    <div class="content active" id="home">
+      <h2>Audit Areas</h2>
+      <div class="columns">
+        <div class="column">
+          <h3>External Audit</h3>
+          <div class="agents">
+            <div class="agent-card" onclick="openChat('agent1', this)">State Bank of Pakistan (SBP) Regulations</div>
+            <div class="agent-card" onclick="openChat('agent3', this)">Securities and Exchange Commission of Pakistan (SECP) Regulations</div>
+            <div class="agent-card" onclick="openChat('agent4', this)">Federal Board of Revenue (FBR) Regulations</div>
+          </div>
+        </div>
+        <div class="column">
+          <h3>Internal Audit</h3>
+          <div class="agents">
+            <div class="agent-card" onclick="openChat('agent2', this)">Branch Banking Audit (Field Audit)</div>
+            <div class="agent-card" onclick="openChat('fmAudit', this)">Financial Management (FM) Audit</div>
+            <div class="agent-card" onclick="openChat('itAudit', this)">Information Technology (IT) Audit</div>
+            <div class="agent-card" onclick="openChat('brrAudit', this)">Business Risk Review (BRR) Audit</div>
+            <div class="agent-card" onclick="openChat('investigationAudit', this)">Investigation Audit</div>
+            <div class="agent-card" onclick="openChat('shariaAudit', this)">Sharia Audit</div>
+            <div class="agent-card" onclick="openChat('internationalAudit', this)">International Audit</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="content" id="checklist">
+      <h2>Generate Checklist</h2>
+      <div class="agents">
+        <div class="agent-card" onclick="openChat('checklistAgent', this)">Checklist Generator Agent</div>
+      </div>
+    </div>
+
+    <div class="content" id="compare">
+      <h2>Compare Internal Audit with Regulators</h2>
+      <div class="agents">
+        <div class="agent-card" onclick="openChat('compareAgent', this)">Comparison Assistant Agent</div>
+      </div>
+    </div>
+
+    <div class="content" id="reports">
+      <h2>Reports</h2>
+      <div class="agents">
+        <div class="agent-card" onclick="openChat('reportAgent', this)">Reports Generator Agent</div>
+      </div>
+    </div>
+
+    <!-- Right Tree Menu -->
+    <div class="tree-menu">
+      <!-- Departments -->
+      <h3>Departments</h3>
+      <div class="tree-item">
+        <button onclick="toggleSub(this)">▶ Departments</button>
+        <div class="sub-menu">
+          <button>Human Resource</button>
+          <button>Service & Quality</button>
+          <button>Internal Audit Manual</button>
+        </div>
+      </div>
+
+      <!-- Mind Map -->
+      <h3>Mind Map</h3>
+
+      <!-- Branch Banking -->
+      <div class="tree-item">
+        <button onclick="toggleSub(this)">▶ Branch Banking</button>
+        <div class="sub-menu">
+          <button>1. Bank's Safety and Security Publications</button>
+
+          <div class="tree-item">
+            <button onclick="toggleSub(this)">▶ 2. Branch Operations Manual</button>
+            <div class="sub-menu">
+              <div class="tree-item">
+                <button onclick="toggleSub(this)">▶ 2.1 Branch Administration</button>
+                <div class="sub-menu">
+                  <button>2.1.1 Maintenance of Banker Account</button>
+                  <button>2.1.2 Physical Record Retention</button>
+                  <button>2.1.3 Stationery Management at Branch</button>
+                </div>
+              </div>
+
+              <div class="tree-item">
+                <button onclick="toggleSub(this)">▶ 2.2 Cash &amp; Teller</button>
+                <div class="sub-menu">
+                  <button>2.2.1 ATM Operations Management</button>
+                  <button>2.2.2 Call Back Procedure</button>
+                  <button>2.2.3 Cash &amp; Cheque Deposit Machine (CCDM)</button>
+                  <button>2.2.4 Cash Balancing &amp; Excess Shortage in Cash</button>
+                  <button>2.2.5 Cash Cell Operations</button>
+                  <button>2.2.6 Cash Deposit (PKR FCY)</button>
+                  <button>2.2.7 Cash Payment to Customers (PKR FCY)</button>
+                  <button>2.2.8 Cash Transportation &amp; Handling of Fresh Currency</button>
+                  <button>2.2.9 Cheque Book Management at Branch and CPU</button>
+                  <button>2.2.10 Cheque Return</button>
+                  <button>2.2.11 Clearing</button>
+                  <button>2.2.12 Dealing in Encashment of Foreign Currency in PKR</button>
+                  <button>2.2.13 Funds Transfer (PKR FCY)</button>
+                  <button>2.2.14 Handling of National Prize Bonds</button>
+                  <button>2.2.15 Handling of Outward Returned Cheques</button>
+                  <button>2.2.16 Payment of Prize Money &amp; Face Value of NPB</button>
+                  <button>2.2.17 Procedure for Release of Private Travel Exchange</button>
+                  <button>2.2.18 Stop Payment of Cheque &amp; Release of Stop Payment</button>
+                  <button>2.2.19 Utility Bills Collection (Manual &amp; Scanner)</button>
+                  <button>2.2.20 Vault &amp; Safe Keys Handling and Operation</button>
+                </div>
+              </div>
+
+              <div class="tree-item">
+                <button onclick="toggleSub(this)">▶ 2.3 Corporate Branch Manual</button>
+                <div class="sub-menu">
+                  <button>2.3.1 Centralized Corporate Advances</button>
+                </div>
+              </div>
+
+              <div class="tree-item">
+                <button onclick="toggleSub(this)">▶ 2.4 Deposit</button>
+                <div class="sub-menu">
+                  <button>2.4.1 Account Balance Transaction Enquiry</button>
+                  <button>2.4.2 Centralized Account Closure</button>
+                  <button>2.4.3 Centralized Account Opening</button>
+                  <button>2.4.4 Centralized Process for Activation of Dormant Account</button>
+                  <button>2.4.5 Dormant Account Activation for NRP Customers</button>
+                  <button>2.4.6 Duplicate Statement of Account &amp; Bank Certificates</button>
+                  <button>2.4.7 Facilitation to Intending Emigrants</button>
+                  <button>2.4.8 Guidelines for Customer Information Form (CIF)</button>
+                  <button>2.4.9 Handling of Standing Instructions</button>
+                  <button>2.4.10 Handling of Zakat at Branches &amp; CPU</button>
+                  <button>2.4.11 Process for CIF Amendment of Non-Resident Account</button>
+                  <button>2.4.12 Process for Deceased Account</button>
+                  <button>2.4.13 Process of CIF &amp; Account Level Amendment Requests</button>
+                  <button>2.4.14 Special Category Accounts</button>
+                  <button>2.4.15 Unclaimed Deposits Accounts &amp; Bills</button>
+                </div>
+              </div>
+
+              <button>2.5 FAQs</button>
+
+              <div class="tree-item">
+                <button onclick="toggleSub(this)">▶ 2.6 Guidelines</button>
+                <div class="sub-menu">
+                  <button>2.6.1 Branch Administration</button>
+                  <button>2.6.2 Development and Review of SOPs</button>
+                  <button>2.6.3 Operations of Bank Booth</button>
+                  <button>2.6.4 Third Party Mandate</button>
+                </div>
+              </div>
+
+              <button>2.7 Locker &amp; Bills</button>
+
+              <div class="tree-item">
+                <button onclick="toggleSub(this)">▶ 2.8 Remittances</button>
+                <div class="sub-menu">
+                  <button>2.8.1 Issuance and Handling of Bank Instruments</button>
+                  <button>2.8.2 Payment &amp; Cancellation of PO &amp; DD</button>
+                  <button>2.8.3 Procedure for TT Remittances &amp; Discount</button>
+                  <button>2.8.4 Real Time Gross Settlement (RTGS)</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="tree-item">
+            <button onclick="toggleSub(this)">▶ 3. FCC Policies and Standards</button>
+            <div class="sub-menu">
+              <button>3.1 Bank FCC Risk Appetite Statement</button>
+              <button>3.2 Policies</button>
+              <button>3.3 Standards</button>
+            </div>
+          </div>
+
+          <button>4. Bank Safety Manual</button>
+          <button>5. Trade-Operation Manual-SOP</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chat Container -->
+  <div class="chat-container" id="chatContainer">
+    <div class="chat-header">
+      <button onclick="closeChat()">⬅ Back</button>
+      <h3>Agent Chat</h3>
+    </div>
+    <iframe id="chatFrame"></iframe>
+  </div>
+
+  <script>
+    // Show screen based on menu click
+    function showScreen(screenId, event){
+      document.querySelectorAll(".content").forEach(c => c.classList.remove("active"));
+      document.getElementById(screenId).classList.add("active");
+
+      document.querySelectorAll(".sidebar li").forEach(li => li.classList.remove("active"));
+      if(event) event.target.classList.add("active");
+    }
+
+    // Toggle tree sub-menu
+    function toggleSub(button){
+      const submenu = button.nextElementSibling;
+      const isVisible = submenu && submenu.style.display === "block";
+      if (submenu) {
+        submenu.style.display = isVisible ? "none" : "block";
+        const label = button.textContent.trim().replace(/^[▶▼]\s*/, "");
+        button.innerHTML = (isVisible ? "▶ " : "▼ ") + label;
+      }
+    }
+
+    // Open agent chat
+    function openChat(agent, card){
+      document.querySelectorAll(".agent-card").forEach(c => c.classList.remove("active"));
+      if (card) card.classList.add("active");
+
+      const chatContainer = document.getElementById("chatContainer");
+      chatContainer.style.display = "block";
+      setTimeout(() => chatContainer.classList.add("show"), 10);
+
+      let url = "";
+      if(agent === "agent1"){
+        url = "https://copilotstudio.microsoft.com/environments/691092a3-ca23-e599-a520-ef6c4a412e4a/bots/cr920_internalAuditMasterAgent/webchat?__version__=2";
+      } else if(agent === "agent2"){
+        url = "https://copilotstudio.microsoft.com/environments/691092a3-ca23-e599-a520-ef6c4a412e4a/bots/cr920_fieldAudit/webchat?__version__=2";
+      } else if(agent === "agent3"){
+        url = "https://copilotstudio.microsoft.com/environments/691092a3-ca23-e599-a520-ef6c4a412e4a/bots/cr920_secp/webchat?__version__=2";
+      } else if(agent === "agent4"){
+        url = "https://copilotstudio.microsoft.com/environments/691092a3-ca23-e599-a520-ef6c4a412e4a/bots/cr920_fbr/webchat?__version__=2";
+      } else {
+        url = "https://copilotstudio.microsoft.com";
+      }
+      document.getElementById("chatFrame").src = url;
+    }
+
+    // Close chat
+    function closeChat(){
+      const chatContainer = document.getElementById("chatContainer");
+      chatContainer.classList.add("hide");
+      setTimeout(() => {
+        chatContainer.style.display = "none";
+        chatContainer.classList.remove("show", "hide");
+        document.getElementById("chatFrame").src = "";
+      }, 400);
+    }
+  </script>
+</body>
+</html>
